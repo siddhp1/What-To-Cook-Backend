@@ -8,7 +8,7 @@ class Dish(models.Model):
     image = models.ImageField(upload_to='static/dishes/')
     cuisine = models.CharField(max_length=100)
     date_last_made = models.DateField()
-    rating = models.IntegerField(validators=[MinValueValidator(1), MaxValueValidator(5)])
+    rating = models.IntegerField(validators=[MinValueValidator(2), MaxValueValidator(10)])
     time_to_make = models.IntegerField(validators=[MinValueValidator(1), MaxValueValidator(5)])
     
     def __str__(self):
