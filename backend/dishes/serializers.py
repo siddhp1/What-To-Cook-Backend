@@ -17,4 +17,4 @@ class DishSerializer(serializers.ModelSerializer):
 class DishLimitedSerializer(serializers.ModelSerializer):
     class Meta:
         model = Dish
-        fields = ['id', 'name', 'cuisine']  # Assuming you want to include all fields, adjust as necessary
+        fields = ['id']  # Assuming you want to include all fields, adjust as necessary
