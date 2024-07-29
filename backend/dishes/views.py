@@ -1,7 +1,6 @@
 from rest_framework import viewsets, filters, status
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.parsers import MultiPartParser, FormParser, JSONParser
-from rest_framework.pagination import PageNumberPagination
 from rest_framework.response import Response
 from rest_framework.views import APIView
 from django.db.models import Q
@@ -16,12 +15,6 @@ class DishViewSet(viewsets.ModelViewSet):
     filter_backends = [filters.SearchFilter, filters.OrderingFilter]
     search_fields = ['name', 'cuisine']
     ordering_fields = ['date_last_made', 'cuisine', 'name']
-    
-    def get_serializer_class(self):
-        # Check if 'limited' query parameter is present in the request
-        if 'limited' in self.request.query_params:
-            return DishLimitedSerializer
-        return super().get_serializer_class()
 
     def get_queryset(self):
         return self.queryset.filter(user=self.request.user)
@@ -37,42 +30,30 @@ class DishViewSet(viewsets.ModelViewSet):
         
         return super().update(request, *args, **kwargs)
     
-class QuickDishesView(APIView):
+class DishRecommendationView(APIView):
     permission_classes = [IsAuthenticated]
     
     def get(self, request, *args, **kwargs):
-
-        # Query for dishes with a time_to_cook score of 1 or 2
-        dishes = Dish.objects.filter(Q(time_to_make=1) | Q(time_to_make=2), user=request.user).order_by('?')[:20]
+        # Query for quick dishes with a time_to_cook score of 1 or 2
+        quick_dishes = Dish.objects.filter(Q(time_to_make=1) | Q(time_to_make=2), user=request.user).order_by('?')[:20]
+        
+        # Query for favorite dishes with a rating of 8, 9, or 10
+        favorite_dishes = Dish.objects.filter(Q(rating=8) | Q(rating=9) | Q(rating=10), user=request.user).order_by('?')[:20]
+        
+        # Query for the 20 dishes with the oldest date last made
+        oldest_dishes = Dish.objects.filter(user=request.user).order_by('date_last_made')[:20]
         
         # Serialize the data
-        serializer = DishSerializer(dishes, many=True, context={'request': request})
+        quick_dishes_serializer = DishLimitedSerializer(quick_dishes, many=True, context={'request': request})
+        favorite_dishes_serializer = DishLimitedSerializer(favorite_dishes, many=True, context={'request': request})
+        oldest_dishes_serializer = DishLimitedSerializer(oldest_dishes, many=True, context={'request': request})
         
-        # Return the serialized data
-        return Response(serializer.data)
-    
-class FavoriteDishesView(APIView):
-    permission_classes = [IsAuthenticated]
-    
-    def get(self, request, *args, **kwargs):
-        # Query for dishes with a rating of 4, 4.5, or 5 stars
-        dishes = Dish.objects.filter(Q(rating=8) | Q(rating=9) | Q(rating=10), user=request.user).order_by('?')[:20]
+        # Combine the serialized data into one JSON response
+        response_data = {
+            'quick_dishes': quick_dishes_serializer.data,
+            'favorite_dishes': favorite_dishes_serializer.data,
+            'oldest_dishes': oldest_dishes_serializer.data
+        }
         
-        # Serialize the data
-        serializer = DishSerializer(dishes, many=True, context={'request': request})
-        
-        # Return the serialized data
-        return Response(serializer.data)
-
-class OldestDishesView(APIView):
-    permission_classes = [IsAuthenticated]
-    
-    def get(self, request, *args, **kwargs):
-        # Query for the 20 dishes with oldest date last made
-        dishes = Dish.objects.filter(user=request.user).order_by('date_last_made')[:20]
-        
-        # Serialize the data
-        serializer = DishSerializer(dishes, many=True, context={'request': request})
-        
-        # Return the serialized data
-        return Response(serializer.data)
+        # Return the combined serialized data
+        return Response(response_data)
