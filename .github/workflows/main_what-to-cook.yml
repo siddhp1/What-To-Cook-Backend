@@ -48,6 +48,7 @@ jobs:
           path: |
             release.zip
             !venv/
+            !recipes/
 
   deploy:
     runs-on: ubuntu-latest

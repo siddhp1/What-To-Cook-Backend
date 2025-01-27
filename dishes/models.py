@@ -14,3 +14,13 @@ class Dish(models.Model):
 
     def __str__(self):
         return self.name
+
+
+class Recipe(models.Model):
+    id = models.IntegerField(primary_key=True)
+    name = models.CharField(max_length=100)
+    ingredients = models.JSONField(null=True, default=list)
+    tags = models.JSONField(null=True, default=list)
+
+    def __str__(self):
+        return self.name
