@@ -1,6 +1,11 @@
+"""
+Settings for production.
+"""
+
 import os
 
 from .settings import *
+
 
 SECRET_KEY = os.environ["SECRET_KEY"]
 ALLOWED_HOSTS = [os.environ["WEBSITE_HOSTNAME"]] if "WEBSITE_HOSTNAME" in os.environ else []

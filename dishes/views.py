@@ -1,16 +1,16 @@
 from django.db.models import Q
 from rest_framework import viewsets, filters, status
-from rest_framework.permissions import IsAuthenticated
 from rest_framework.parsers import MultiPartParser, FormParser, JSONParser
+from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
 from rest_framework.views import APIView
 
 from .models import Dish
-from .serializers import DishSerializer, DishLimitedSerializer, RecipeSerializer
 from .recommendations import add_ingredients, generate_recipe_recommendations
+from .serializers import DishSerializer, DishLimitedSerializer, RecipeSerializer
 
 
-RECOMMENDATIONS = 10
+NUM_RECOMMENDATIONS = 10
 
 
 class DishViewSet(viewsets.ModelViewSet):
@@ -58,7 +58,7 @@ class DishRecommendationView(APIView):
         # Quick dishes (time_to_cook score of 1 or 2)
         quick_dishes = Dish.objects.filter(
             Q(time_to_make=1) | Q(time_to_make=2), user=request.user
-        ).order_by("?")[:20]
+        ).order_by("?")[:NUM_RECOMMENDATIONS]
         quick_dishes_serializer = DishLimitedSerializer(
             quick_dishes, many=True, context={"request": request}
         )
@@ -66,17 +66,19 @@ class DishRecommendationView(APIView):
         # Favorite dishes (rating of 8, 9, or 10)
         favorite_dishes = Dish.objects.filter(
             Q(rating=8) | Q(rating=9) | Q(rating=10), user=request.user
-        ).order_by("?")[:20]
+        ).order_by("?")[:NUM_RECOMMENDATIONS]
         favorite_dishes_serializer = DishLimitedSerializer(
             favorite_dishes, many=True, context={"request": request}
         )
 
-        oldest_dishes = Dish.objects.filter(user=request.user).order_by("date_last_made")[:20]
+        oldest_dishes = Dish.objects.filter(user=request.user).order_by("date_last_made")[
+            :NUM_RECOMMENDATIONS
+        ]
         oldest_dishes_serializer = DishLimitedSerializer(
             oldest_dishes, many=True, context={"request": request}
         )
 
-        recipe_recommendations = generate_recipe_recommendations()
+        recipe_recommendations = generate_recipe_recommendations(NUM_RECOMMENDATIONS)
         recipe_recommendations_serializer = RecipeSerializer(
             recipe_recommendations, many=True, context={"request": request}
         )

@@ -1,7 +1,7 @@
+from django.core.management.base import BaseCommand
+from gensim.models import Word2Vec
 import nltk
 from nltk.tokenize import word_tokenize
-from gensim.models import Word2Vec
-from django.core.management.base import BaseCommand
 
 from scraper.models import Recipe
 

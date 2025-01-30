@@ -15,28 +15,29 @@ from sklearn.metrics.pairwise import linear_kernel
 from backend.settings import BASE_DIR
 from .models import Recipe, Ingredient
 
-
-
+NUM_INGREDIENTS = 5
 MODEL_PATH = pathlib.Path(BASE_DIR, "word2vec_recipe_names.model")
 
 
-nltk.download('punkt_tab')
-nltk.download('stopwords')
+nltk.download("punkt_tab")
+nltk.download("stopwords")
 
-def run_model(dish_name):
+
+def get_keywords(dish_name):
     model = Word2Vec.load(str(MODEL_PATH))
 
     words = word_tokenize(dish_name.lower())
 
-    stop_words = set(stopwords.words('english'))
+    stop_words = set(stopwords.words("english"))
     filtered_words = [word for word in words if word.isalnum() and word not in stop_words]
 
     word_vectors = [(word, model.wv[word]) for word in filtered_words if word in model.wv]
     sorted_words = sorted(word_vectors, key=lambda x: np.linalg.norm(x[1]), reverse=True)
-    
+
     return [word for word, _ in sorted_words]
 
-def search_recipes_for_word(user, words):
+
+def update_ingredient_counts(user, words):
     if not words:
         return
 
@@ -50,22 +51,28 @@ def search_recipes_for_word(user, words):
         ingredients = json.loads(recipe.ingredients)
         for ingredient in ingredients:
             ingredient_counts[ingredient.lower()] += 1
-    
+
     for ingredient, count in ingredient_counts.items():
-        ingredient_obj, created = Ingredient.objects.get_or_create(user=user, name=ingredient, defaults={'count': count})
+        ingredient_obj, created = Ingredient.objects.get_or_create(
+            user=user, name=ingredient, defaults={"count": count}
+        )
         if not created:
-            ingredient_obj.count = F('count') + count
+            ingredient_obj.count = F("count") + count
         ingredient_obj.save()
 
     return recipes
 
-def add_ingredients(user, dish_name):
-    words = run_model(dish_name)
-    search_recipes_for_word(user, words)
 
-def generate_recipe_recommendations(num_ingredients=5, num_recommendations=5):
-    top_ingredients = list(Ingredient.objects.order_by('-count')[:20])
-    selected_ingredients = random.sample(top_ingredients, min(num_ingredients, len(top_ingredients)))
+def add_ingredients(user, dish_name):
+    words = get_keywords(dish_name)
+    update_ingredient_counts(user, words)
+
+
+def generate_recipe_recommendations(num_recommendations, num_ingredients=NUM_INGREDIENTS):
+    top_ingredients = list(Ingredient.objects.order_by("-count")[:20])
+    selected_ingredients = random.sample(
+        top_ingredients, min(num_ingredients, len(top_ingredients))
+    )
     user_doc = " ".join(ing.name.lower() for ing in selected_ingredients)
 
     recipes = Recipe.objects.all()
