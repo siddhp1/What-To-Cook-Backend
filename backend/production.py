@@ -1,3 +1,7 @@
+"""
+Settings for production.
+"""
+
 import os
 
 from .settings import *
