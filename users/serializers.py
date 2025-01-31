@@ -35,8 +35,12 @@ class UserSerializer(serializers.ModelSerializer):
         if "email" in data:
             email = data["email"]
             user = self.instance
-            if User.objects.filter(email=email).exclude(id=user.id).exists():
-                raise serializers.ValidationError("Email is already in use.")
+            if user:
+                if User.objects.filter(email=email).exclude(id=user.id).exists():
+                    raise serializers.ValidationError("Email is already in use.")
+            else:
+                if User.objects.filter(email=email).exists():
+                    raise serializers.ValidationError("Email is already in use.")
 
         return data
 
