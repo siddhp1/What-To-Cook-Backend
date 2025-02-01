@@ -78,7 +78,7 @@ class DishRecommendationView(APIView):
             oldest_dishes, many=True, context={"request": request}
         )
 
-        recipe_recommendations = generate_recipe_recommendations(NUM_RECOMMENDATIONS)
+        recipe_recommendations = generate_recipe_recommendations()
         recipe_recommendations_serializer = RecipeSerializer(
             recipe_recommendations, many=True, context={"request": request}
         )

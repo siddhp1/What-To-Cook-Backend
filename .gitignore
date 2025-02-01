@@ -1,3 +1,6 @@
+# Model training data
+*.csv
+
 # Static and media files
 static/
 media/

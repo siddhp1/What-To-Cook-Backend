@@ -68,8 +68,12 @@ def add_ingredients(user, dish_name):
     update_ingredient_counts(user, words)
 
 
-def generate_recipe_recommendations(num_recommendations, num_ingredients=NUM_INGREDIENTS):
+def generate_recipe_recommendations(num_recommendations=5, num_ingredients=NUM_INGREDIENTS):
     top_ingredients = list(Ingredient.objects.order_by("-count")[:20])
+
+    if not top_ingredients:
+        return []
+
     selected_ingredients = random.sample(
         top_ingredients, min(num_ingredients, len(top_ingredients))
     )
