@@ -4,6 +4,7 @@ import random
 import pathlib
 
 from django.db.models import Q, F
+from functools import lru_cache
 from gensim.models import Word2Vec
 import nltk
 from nltk.tokenize import word_tokenize
@@ -67,9 +68,16 @@ def add_ingredients(user, dish_name):
     words = get_keywords(dish_name)
     update_ingredient_counts(user, words)
 
+@lru_cache(maxsize=128)
+def get_top_ingredients():
+    return list(Ingredient.objects.order_by("-count")[:20])
 
-def generate_recipe_recommendations(num_recommendations=5, num_ingredients=NUM_INGREDIENTS):
-    top_ingredients = list(Ingredient.objects.order_by("-count")[:20])
+@lru_cache(maxsize=128)
+def get_all_recipes(batch_size=10000):
+    return list(Recipe.objects.all()[:batch_size])
+
+def generate_recipe_recommendations(num_recommendations=5, num_ingredients=NUM_INGREDIENTS, batch_size=10000):
+    top_ingredients = get_top_ingredients()
 
     if not top_ingredients:
         return []
@@ -79,10 +87,10 @@ def generate_recipe_recommendations(num_recommendations=5, num_ingredients=NUM_I
     )
     user_doc = " ".join(ing.name.lower() for ing in selected_ingredients)
 
-    recipes = Recipe.objects.all()
+    all_recipes = get_all_recipes(batch_size=batch_size)
     recipe_docs = []
 
-    for recipe in recipes:
+    for recipe in all_recipes:
         try:
             ingredients = json.loads(recipe.ingredients)
             recipe_docs.append(" ".join(ingredient.lower() for ingredient in ingredients))
@@ -92,7 +100,7 @@ def generate_recipe_recommendations(num_recommendations=5, num_ingredients=NUM_I
     tfidf = TfidfVectorizer().fit_transform([user_doc] + recipe_docs)
     cos_sim = linear_kernel(tfidf[0:1], tfidf[1:]).flatten()
 
-    scored_recipes = list(zip(recipes, cos_sim))
+    scored_recipes = list(zip(all_recipes, cos_sim))
     scored_recipes.sort(key=lambda x: x[1], reverse=True)
     recommendations = [r[0] for r in scored_recipes[:num_recommendations]]
 
